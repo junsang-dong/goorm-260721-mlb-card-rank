@@ -1,5 +1,5 @@
 import { useCards } from "../hooks/useCards";
-import { RankingTable } from "../components/RankingTable";
+import { RankingGrid } from "../components/RankingGrid";
 import { LoadingState } from "../components/LoadingState";
 import { ErrorState } from "../components/ErrorState";
 
@@ -8,7 +8,7 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-5xl px-4 py-10">
+      <div className="mx-auto max-w-6xl px-4 py-10">
         <header className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Today's MLB Card Ranking</h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -26,7 +26,7 @@ export function HomePage() {
           </div>
         )}
         {!isLoading && !isError && data && data.cards.length > 0 && (
-          <RankingTable cards={data.cards} />
+          <RankingGrid cards={data.cards} />
         )}
       </div>
     </div>
