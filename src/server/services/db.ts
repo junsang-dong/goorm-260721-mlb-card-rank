@@ -1,5 +1,10 @@
 import { createClient, type Client } from "@libsql/client";
-import type { CardAnalysis, RankedCard, RawScrapedCard } from "../../types/card";
+import type {
+  CardAnalysis,
+  CardSource,
+  RankedCard,
+  RawScrapedCard,
+} from "../../types/card";
 
 let client: Client | null = null;
 
@@ -17,6 +22,7 @@ export function getDb(): Client {
 export interface UpsertCardInput extends RawScrapedCard {
   id: string;
   scrapedAt: string;
+  source: CardSource;
 }
 
 export async function upsertCard(card: UpsertCardInput): Promise<void> {
@@ -26,8 +32,8 @@ export async function upsertCard(card: UpsertCardInput): Promise<void> {
       INSERT INTO cards (
         id, title, price, currency, shipping, seller, seller_rating,
         review_count, image, url, listing_position, sold_count, watchers,
-        is_sponsored, scraped_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        is_sponsored, source, scraped_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         title = excluded.title,
         price = excluded.price,
@@ -42,6 +48,7 @@ export async function upsertCard(card: UpsertCardInput): Promise<void> {
         sold_count = excluded.sold_count,
         watchers = excluded.watchers,
         is_sponsored = excluded.is_sponsored,
+        source = excluded.source,
         scraped_at = excluded.scraped_at
     `,
     args: [
@@ -59,6 +66,7 @@ export async function upsertCard(card: UpsertCardInput): Promise<void> {
       card.soldCount,
       card.watchers,
       card.isSponsored ? 1 : 0,
+      card.source,
       card.scrapedAt,
     ],
   });
@@ -171,11 +179,16 @@ const RANKED_CARD_SELECT = `
   SELECT
     c.id, c.title, c.player, c.team, c.brand, c.year, c.price, c.currency,
     c.shipping, c.seller, c.seller_rating, c.review_count, c.image, c.url,
+    c.source,
     a.rookie, a.autograph, a.patch, a.parallel_type, a.serial_number,
     a.grading, a.investment_score, a.summary, a.ranking_score
   FROM cards c
   JOIN ai_analysis a ON a.card_id = c.id
 `;
+
+function normalizeSource(value: unknown): CardSource {
+  return value === "apify" ? "apify" : "playwright";
+}
 
 function rowToRankedCard(row: Record<string, unknown>, rank: number): RankedCard {
   return {
@@ -203,27 +216,47 @@ function rowToRankedCard(row: Record<string, unknown>, rank: number): RankedCard
     summary: (row.summary as string) ?? null,
     rankingScore: (row.ranking_score as number) ?? null,
     rank,
+    source: normalizeSource(row.source),
   };
+}
+
+export async function getTopCardsBySource(
+  source: CardSource,
+  limit = 20
+): Promise<RankedCard[]> {
+  const db = getDb();
+  const result = await db.execute({
+    sql: `${RANKED_CARD_SELECT} WHERE c.source = ? ORDER BY a.ranking_score DESC LIMIT ?`,
+    args: [source, limit],
+  });
+
+  return result.rows.map((row, index) =>
+    rowToRankedCard(row as unknown as Record<string, unknown>, index + 1)
+  );
 }
 
 export async function getTopCards(limit = 20): Promise<{
   cards: RankedCard[];
+  apifyCards: RankedCard[];
+  playwrightCards: RankedCard[];
   updatedAt: string | null;
 }> {
+  const [apifyCards, playwrightCards] = await Promise.all([
+    getTopCardsBySource("apify", limit),
+    getTopCardsBySource("playwright", limit),
+  ]);
+
+  // Apify list first, then Playwright — as requested for the UI.
+  const cards = [...apifyCards, ...playwrightCards].map((card, index) => ({
+    ...card,
+    rank: index + 1,
+  }));
+
   const db = getDb();
-  const result = await db.execute({
-    sql: `${RANKED_CARD_SELECT} ORDER BY a.ranking_score DESC LIMIT ?`,
-    args: [limit],
-  });
-
-  const cards = result.rows.map((row, index) =>
-    rowToRankedCard(row as unknown as Record<string, unknown>, index + 1)
-  );
-
   const maxScraped = await db.execute("SELECT MAX(scraped_at) as m FROM cards");
   const updatedAt = (maxScraped.rows[0]?.m as string) ?? null;
 
-  return { cards, updatedAt };
+  return { cards, apifyCards, playwrightCards, updatedAt };
 }
 
 export async function getCardById(id: string): Promise<RankedCard | null> {

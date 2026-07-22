@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/scrape.ts": { "maxDuration": 60 },
+    "api/scrape.ts": { "maxDuration": 300 },
     "api/analyze.ts": { "maxDuration": 60 },
     "api/cards.ts": { "maxDuration": 10 },
     "api/ranking.ts": { "maxDuration": 10 },

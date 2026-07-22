@@ -52,6 +52,11 @@ export function CardItem({ card }: { card: RankedCard }) {
         <span className="absolute left-3 top-3 rounded-md bg-slate-900/85 px-2.5 py-1 text-xs font-semibold text-white">
           #{card.rank}
         </span>
+        {card.source === "apify" && (
+          <span className="absolute right-3 top-3 rounded-md bg-sky-700/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+            Apify
+          </span>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-4">

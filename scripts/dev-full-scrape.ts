@@ -9,7 +9,7 @@
  */
 import "dotenv/config";
 import { chromium, type Browser } from "playwright";
-import { runScrape } from "../src/server/services/scrape";
+import { runCombinedScrape } from "../src/server/services/scrape";
 import { analyzeUnanalyzedCards } from "../src/server/services/analyze";
 
 async function localLaunchBrowser(): Promise<Browser> {
@@ -22,11 +22,11 @@ async function localLaunchBrowser(): Promise<Browser> {
 async function main() {
   const limit = Number(process.env.SCRAPE_LIMIT) || 20;
 
-  console.log("Scraping...");
-  const scrapeResult = await runScrape(limit, localLaunchBrowser);
+  console.log("Scraping (Apify + Playwright)...");
+  const scrapeResult = await runCombinedScrape(limit, localLaunchBrowser);
   console.log("Scrape result:", scrapeResult);
 
-  if (scrapeResult.error) {
+  if (scrapeResult.scraped === 0) {
     process.exit(1);
   }
 

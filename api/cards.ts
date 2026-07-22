@@ -8,7 +8,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { cards, updatedAt } = await getTopCards(20);
-  const response: CardsResponse = { cards, updatedAt };
+  const { cards, apifyCards, playwrightCards, updatedAt } = await getTopCards(20);
+  const response: CardsResponse = { cards, apifyCards, playwrightCards, updatedAt };
   res.status(200).json(response);
 }

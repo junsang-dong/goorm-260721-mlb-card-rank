@@ -1,3 +1,5 @@
+export type CardSource = "apify" | "playwright";
+
 export interface RawScrapedCard {
   ebayItemId: string;
   title: string;
@@ -55,15 +57,21 @@ export interface RankedCard {
   summary: string | null;
   rankingScore: number | null;
   rank: number;
+  source: CardSource;
 }
 
 export interface CardsResponse {
+  /** Combined list (Apify first, then Playwright) for simple clients. */
   cards: RankedCard[];
+  apifyCards: RankedCard[];
+  playwrightCards: RankedCard[];
   updatedAt: string | null;
 }
 
 export interface ScrapeResponse {
   scraped: number;
+  scrapedApify?: number;
+  scrapedPlaywright?: number;
   analyzed: number;
   updatedAt?: string;
   error?: string;

@@ -23,6 +23,21 @@ async function main() {
     await client.execute(statement);
   }
 
+  // Additive migration for existing Turso DBs created before `source` existed.
+  try {
+    await client.execute(
+      "ALTER TABLE cards ADD COLUMN source TEXT NOT NULL DEFAULT 'playwright'"
+    );
+    console.log("Added cards.source column");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (!/duplicate column|already exists/i.test(message)) throw err;
+  }
+
+  await client.execute(
+    "CREATE INDEX IF NOT EXISTS idx_cards_source ON cards(source)"
+  );
+
   console.log(`Migration applied: ${statements.length} statements executed against ${url}`);
 }
 
