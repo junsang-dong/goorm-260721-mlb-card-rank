@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/scrape.ts": { "maxDuration": 60 },
+    "api/analyze.ts": { "maxDuration": 60 },
+    "api/cards.ts": { "maxDuration": 10 },
+    "api/ranking.ts": { "maxDuration": 10 },
+    "api/card/[id].ts": { "maxDuration": 10 }
+  },
+  "crons": [{ "path": "/api/scrape", "schedule": "0 9 * * *" }]
+}
